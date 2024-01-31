@@ -24,12 +24,13 @@ main.py是主要pipeline
 之后会补充流程图来更清晰的展示
 
 我们主要实现score函数，格式：
-def function2score(example,name = "yiapi"):
-    '''
-    example 是个字典，包含 instruction input output 三个key    （后续可以扩展
-    name = "yiapi"  用户控制识别模式。
 
-    '''
+example 是个字典，包含 instruction input output 
+
+name = "yiapi"  用户控制识别模式。
+'''
+def function2score(example,name = "yiapi"):
     pass
     example["scores"] = {"yiapi":0.5,"ifd":0.6}
     return example
+'''
