@@ -12,11 +12,9 @@
 本项目会持续更新，大家看到新论文也欢迎issues
 
 ## 更新计划
-2024/01/30 龙年前夕，我们项目正式新建文件夹（X
-
-2024/01/31 上传测试使用的main.py，方便在此基础上进行新score函数方法的实现
-
-2024/02/09 po出我们的论文list及相关讲解
+- [x] 2024/01/30 龙年前夕，我们项目正式新建文件夹
+- [x] 2024/01/31 上传测试使用的main.py，方便在此基础上进行新score函数方法的实现
+- [ ] 2024/02/09 po出我们的论文list及相关讲解
 
 
 ## 项目资源
@@ -29,9 +27,9 @@ example 是个字典，包含 instruction input output
 
 name = "yiapi"  用户控制识别模式。
 
-''' python
+```python
 def function2score(example,name = "yiapi"):
     pass
     example["scores"] = {"yiapi":0.5,"ifd":0.6}
     return example
-'''
+```
