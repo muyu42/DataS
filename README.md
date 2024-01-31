@@ -28,7 +28,8 @@ main.py是主要pipeline
 example 是个字典，包含 instruction input output 
 
 name = "yiapi"  用户控制识别模式。
-'''
+
+''' python
 def function2score(example,name = "yiapi"):
     pass
     example["scores"] = {"yiapi":0.5,"ifd":0.6}
