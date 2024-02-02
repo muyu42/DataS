@@ -18,6 +18,7 @@ oracle
 - [x] 2024/01/30 龙年前夕，我们项目正式新建文件夹
 - [x] 2024/01/31 上传测试使用的main.py，方便在此基础上进行新score函数方法的实现
 - [x] 2024/02/01 po出我们的论文list并持续更新维护，见[paper_list](https://github.com/muyu42/DataS/blob/main/paper_list.md)
+- [ ] 2024/02/02 添加ifd的计算方式作为baseline
 - [ ] 2024/02/09 po出我们的论文list及相关讲解，见
 
 ## 项目资源
