@@ -68,6 +68,6 @@ if __name__ == '__main__':
     output_path = './'
     )    
     example = [{'instruction': 'instruction', 'input': 'input', 'output': 'output'}]
-    output = pipeline._forward(example)
-    print(output)
+    output = pipeline._function2score(example[0])
+    print(example)
 
