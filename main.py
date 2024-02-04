@@ -6,7 +6,7 @@ import torch
 import argparse
 
 #import sys
-#sys.path.append("/data/home/lxy/dataS/evol_schedules")
+#sys.path.append("/data/home/xxx/dataS/evol_schedules")
 
 from evol_schedules import RandomSampling, LeastConfidence, MarginSampling, EntropySampling, KCenterSampling # 采样策略导入。策略是在第三方库基础上改写的
 from utils import get_tokenizer, smart_tokenizer_and_embedding_resize, get_model# 加载tokenizer model  
@@ -27,7 +27,7 @@ from sklearn.manifold import TSNE
 
 #TODO 数据管理，采样都写成一个类
 '''
-cd /data/home/lxy/dataS ; 
+cd /data/home/xxx/dataS ; 
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 nohup python -m torch.distributed.run --nproc_per_node=4     # 分布式  占用四张卡
     train.py  #运行train文件
@@ -93,9 +93,9 @@ if 1:
     args = Flag()
     args.path = ""
     args.model_max_length = 512
-    args.data_path = "/data/home/lxy/taskV/use_yi2generate/rawdata/alpaca_data.json"
-    args.save_path = "/data/home/lxy/dataS/data/datapre/alpaca_data_pre.pt"
-    args.json_save_path = "/data/home/lxy/dataS/data/select_rd_0/alpaca_data_select.json"
+    args.data_path = "/data/home/xxx/taskV/use_yi2generate/rawdata/alpaca_data.json"
+    args.save_path = "/data/home/xxx/dataS/data/datapre/alpaca_data_pre.pt"
+    args.json_save_path = "/data/home/xxx/dataS/data/select_rd_0/alpaca_data_select.json"
 
     args.start_idx = 0
     args.end_idx = 20
