@@ -66,7 +66,21 @@ class BasePipeline:
         raise NotImplementedError
     
     def run(self) -> None:
-        
+        '''
+            #1 加载数据，目前仅支持alpaca格式（for单论sft），对话格式之后添加
+            json_data = self._load_data(self.data_path)
+            #2添加 其他数据辅助，默认没有
+            other_data = None
+            if hasattr(self, "other_data_path"):
+                other_data = self._load_other_data(self.other_data_path)
+            #3预处理 需要的话写，不需要就直接传json_data过去了
+            preprocessed_data = self._preprocess(json_data, other_data)
+            #4 给整个数据集所有qa打分
+            results = self._forward(preprocessed_data)
+            #5保存
+            self._save_data(json_data, results)
+            logger.info(f"Pipeline {self.name} run complete.")
+        '''
         json_data = self._load_data(self.data_path)
         
         other_data = None
