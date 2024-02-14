@@ -114,10 +114,11 @@ class ModelInfoRetriever:
         #index.add(embeddings_matrix)
         #faiss.write_index(index, f'{output_dir}/faiss_index.bin')
 
-# Usage
-model_name = 'gpt2'  # specify the model name
-data_path = 'data.jsonl'  # specify the path to your JSONL file
-output_dir = 'model_info_output'  # specify the output directory
-
-info_retriever = ModelInfoRetriever(model_name, data_path)
-info_retriever.inference_and_save_info_pipeline(output_dir)
+if __name__ == "__main__":
+    # Usage
+    model_name = 'gpt2'  # specify the model name
+    data_path = '../../data/rawdata/alpaca_simple.jsonl'  # specify the path to your JSONL file
+    output_dir = '../../data/pre_data_info'  # specify the output directory
+    
+    info_retriever = ModelInfoRetriever(model_name, data_path)
+    info_retriever.inference_and_save_info_pipeline(output_dir)
