@@ -51,8 +51,8 @@ class ModelInfoRetriever:
 
         return hidden_states, ppl.item()
     def _save_as_jsonl(self, output_dir):
-        # 序列化
-      
+        # 序列化 from .tensor2jsonl import xx
+        
         # 存jsonl
         pass
       
