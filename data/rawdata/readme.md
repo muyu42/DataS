@@ -1,8 +1,11 @@
 分为两种类型
 # alpaca类型单轮数据  
-{}  
-' 
-'
+
+{"instruction": "What are the three primary colors?",  
+"input": "",  
+"output": "The three primary colors are red, blue, and yellow."}  
+
+
 alpaca_en  
 alpaca_zh  
 alpaca_gpt4_en  
