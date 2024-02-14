@@ -99,7 +99,7 @@ class ModelInfoRetriever:
 
 
         # Save embeddings, PPL, and gradients locally
-        torch.save(torch.stack(embeddings_collection), f'{output_dir}/embeddings.pt')
+        torch.save(torch.stack(embeddings_collection), f'{output_dir}/embeddings.pt')#保存路径改成和model名字相关的，方便区分不同model推理产生的不同loss/embeding之类的。为进一步做主动学习留空间
         with open(f'{output_dir}/ppls.jsonl', 'w') as f:
             for item in ppls:
                 f.write(json.dumps(item) + '\n')
