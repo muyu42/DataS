@@ -50,17 +50,14 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
         self.dataset = Dataset.from_json(data_path)
         
         
+
     def _function2score(self, example) : #可以想象成对单条qa进行打分。
         #example是个字典，里面有instruction input output
-        input_text = example['instruction']+example['input']
-        output_text = example['output']
-        
-        inputs = self.tokenizer(input_text, output_text, return_tensors='pt')
-        score = self.rank_model(**inputs).logits[0].cpu().detach()
-        print(score.tolist())
-        example['score_rw'] = score.tolist()[0]
-        #return example
-    
+        example["less_score"] = len(example["output"])#instruction input output
+        return example    
+    def _preprocess(self, json_data) : # 在这里获取梯度。
+        # preprocessed_data = self._preprocess(json_data, other_data)
+        pass
     
     def _forward(self, preprocessed_data) -> List:
         
