@@ -118,6 +118,7 @@ class ModelInfoRetriever:
     def inference_and_save_info_pipeline(self, output_dir):
         embeddings_collection = []
         ppls = []
+        all_gradients = {}
 
         for entry in self.dataset:
             input_text = entry['text']
