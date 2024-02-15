@@ -28,12 +28,14 @@ from datasets import Dataset
 
 
 class ModelInfoRetriever:
-    def __init__(self, model_name_or_path, data_path):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
-        self.model_after_sft = self.model
+    def __init__(self, model_name_or_path1, model_name_or_path2,data_path):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path1)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name_or_path1)
+        self.model2 = AutoModelForCausalLM.from_pretrained(model_name_or_path2)#model_after_sft
         ## more...
         self.model.eval()  # Set the model to eval mode
+        self.model2.eval()  # Set the model to eval mode
+        
         self.dataset = Dataset.from_json(data_path)#或者改成dataloader
         #TODO  判断传入是str 还是模型，如果传入str，按照上面进行加载，，如果传入模型。直接赋值给self#这一步方便其他地方调用
 
@@ -84,7 +86,35 @@ class ModelInfoRetriever:
         
         # 存jsonl
         pass
-      
+    def calculate_task_vector(self):
+        task_vector = {}
+
+        # Get parameters from each model and calculate task vector.
+        # We will assume both models contain the same parameters keys for simplicity
+        params1 = self.model.named_parameters()
+        params2 = self.model2.named_parameters()
+        dict_params2 = dict(params2)
+
+        for name1, param1 in params1:
+            # Only layers with learnable parameters are considered (Conv, Linear, etc.)
+            if param1.requires_grad:
+                # Calculate the task vector (difference of the parameters)
+                task_vector[name1] = param1.data - dict_params2[name1].data
+
+        return task_vector
+
+    def save_task_vector(self, task_vector, output_dir):
+        # Initialize storage for parameters
+        task_vector_storage = {}
+
+        # Convert task_vector to a format that can be saved with torch.save
+        for key, value in task_vector.items():
+            task_vector_storage[key] = value.cpu().detach()
+
+        # Save task vector in PyTorch file format
+        torch.save(task_vector_storage, f"{output_dir}/task_vector.pt")
+        
+    
     def inference_and_save_info_pipeline(self, output_dir):
         embeddings_collection = []
         ppls = []
