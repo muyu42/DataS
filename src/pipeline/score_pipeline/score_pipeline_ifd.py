@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 from pipeline.utils import load_data
 import logging
 from tqdm import tqdm
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer,LlamaTokenizer, LlamaForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
         self._save_data(json_data, results)
         logger.info(f"Pipeline {self.name} run complete.")
 '''
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"  # 使用编号为0的GPU
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # 使用编号为0的GPU
+print(torch.cuda.device_count())
 
 class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下BasePipeline
     
@@ -44,9 +45,11 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
         #实例化的时候运行
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.model_name = '/data/home/guanchaofeng/LLMs/qwen/Qwen1.5-1.8B-Chat'
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, device_map="auto")
-        self.rank_model = AutoModelForSequenceClassification.from_pretrained(self.model_name).to(self.device)
+
+        self.model_name = '/data/home/guanchaofeng/LLMs/01ai/Yi-6B-Chat'
+        self.tokenizer = LlamaTokenizer.from_pretrained(self.model_name)
+        self.rank_model =  LlamaForCausalLM.from_pretrained(self.model_name, device_map="auto", output_hidden_states=True)
+
         self.log_softmax = nn.LogSoftmax(dim=-1)
         self.nll_loss = nn.NLLLoss(reduction='none')
         self.sample_rate = 0.1
@@ -67,7 +70,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
         
     def get_perplexity_and_embedding_part_text(self,tokenizer, model, text, target_span, max_length):
 
-        input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length).to(self.device)
+        input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length)
 
         start_index = text.rfind(target_span)
         start_token = len(tokenizer.encode(text[:start_index]))
@@ -92,7 +95,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
 
         return perplexity.to('cpu'), 0, losses
 
-    def get_loss_part_text(tokenizer, text, target_span, max_length, loss_list_):
+    def get_loss_part_text(self,tokenizer, text, target_span, max_length, loss_list_):
 
         input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length).to('cpu')
         start_index = text.rfind(target_span)
@@ -110,6 +113,9 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
     def _function2score(self, sampled_data,max_length=100) : #对多条qa进行打分。
         #sampled_data是个字典，里面有instruction input output
         pt_data = []
+        mean_rate_list = []
+        mean_list_1 = []
+        mean_list_2 = []
         
         for i in tqdm(range(len(sampled_data))):
             data_i = sampled_data[i]
@@ -132,7 +138,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
 
             temp_data_i = {}
 
-            instruct_i_input_ids = self.tokenizer.encode(instruct_i, return_tensors="pt", truncation=True, max_length=max_length).to(self.device)
+            instruct_i_input_ids = self.tokenizer.encode(instruct_i, return_tensors="pt", truncation=True, max_length=max_length)
             instruct_i_len = instruct_i_input_ids.shape[1] 
 
             ppl_out_alone, _, loss_list_alone = self.get_perplexity_and_embedding_part_text(self.tokenizer, self.rank_model, direct_answer_text, output_i, max_length-instruct_i_len+4)
@@ -144,7 +150,6 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
             pt_data.append(temp_data_i)
 
         print('New data len:', len(pt_data))
-        print(pt_data)
         for i in tqdm(range(len(pt_data))):
 
             pt_data_i = pt_data[i]
@@ -187,14 +192,23 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
                 mean_1 = loss_list_1.mean()
                 mean_2 = loss_list_2.mean()
                 mean_rate = mean_2/mean_1
-                sampled_data['score_rw'] = mean_rate
 
                 if mean_rate > 1: 
                     continue
+                
+                mean_rate_list.append((mean_rate,i))
+                mean_list_1.append((mean_1,i))
+                mean_list_2.append((mean_2,i))
+                # print('mean_rate',mean_rate)
+                # print('sampled_data',sampled_data)
+                sampled_data[i]['score_rw'] = mean_rate
 
             else:
                 continue
-
+        print('mean_rate_list',mean_rate_list)
+        print('mean_list_1',mean_list_1)
+        print('mean_list_2',mean_list_2)
+        print('sampled_data',sampled_data)
         return sampled_data
     
     
