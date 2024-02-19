@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -11,7 +12,7 @@ from typing import Any, Dict, List
 from pipeline.utils import load_data
 import logging
 from tqdm import tqdm
-from transformers import AutoModelForSequenceClassification, AutoTokenizer,LlamaTokenizer, LlamaForCausalLM
+from transformers import AutoModelForSequenceClassification, AutoTokenizer,LlamaTokenizer, LlamaForCausalLM,AutoModelForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,8 @@ logger = logging.getLogger(__name__)
         logger.info(f"Pipeline {self.name} run complete.")
 '''
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # 使用编号为0的GPU
-print(torch.cuda.device_count())
+#print(torch.cuda.device_count())
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
 
 class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下BasePipeline
     
@@ -44,14 +46,19 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
         #加载模型 等事情只做一次的话放在这里
         #实例化的时候运行
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if_cuda = torch.cuda.is_available()
+        print("if_cuda=",if_cuda)
+        gpu_count = torch.cuda.device_count()
+        print("gpu_count=",gpu_count)
 
+        self.model_name = '/data/LLMs/01ai/Yi-34B-Chat'
+        #self.model_name = '/data/home/guanchaofeng/LLMs/01ai/Yi-6B-Chat'
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.rank_model =  AutoModelForCausalLM.from_pretrained(self.model_name, device_map="auto", output_hidden_states=True)
+        self.rank_model.eval()
 
-        self.model_name = '/data/home/guanchaofeng/LLMs/01ai/Yi-6B-Chat'
-        self.tokenizer = LlamaTokenizer.from_pretrained(self.model_name)
-        self.rank_model =  LlamaForCausalLM.from_pretrained(self.model_name, device_map="auto", output_hidden_states=True)
-
-        self.log_softmax = nn.LogSoftmax(dim=-1)
-        self.nll_loss = nn.NLLLoss(reduction='none')
+        self.log_softmax = nn.LogSoftmax(dim=-1).to(self.device)
+        self.nll_loss = nn.NLLLoss(reduction='none').to(self.device)
         self.sample_rate = 0.1
         self.sample_number = 0
         
@@ -70,7 +77,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
         
     def get_perplexity_and_embedding_part_text(self,tokenizer, model, text, target_span, max_length):
 
-        input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length)
+        input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length).to(self.device)
 
         start_index = text.rfind(target_span)
         start_token = len(tokenizer.encode(text[:start_index]))
@@ -97,7 +104,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
 
     def get_loss_part_text(self,tokenizer, text, target_span, max_length, loss_list_):
 
-        input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length).to('cpu')
+        input_ids = tokenizer.encode(text, return_tensors="pt", truncation=True, max_length=max_length)
         start_index = text.rfind(target_span)
         text_temp = text[:start_index]
         token_id_temp = tokenizer.encode(text_temp)
@@ -138,7 +145,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
 
             temp_data_i = {}
 
-            instruct_i_input_ids = self.tokenizer.encode(instruct_i, return_tensors="pt", truncation=True, max_length=max_length)
+            instruct_i_input_ids = self.tokenizer.encode(instruct_i, return_tensors="pt", truncation=True, max_length=max_length).to(self.device)
             instruct_i_len = instruct_i_input_ids.shape[1] 
 
             ppl_out_alone, _, loss_list_alone = self.get_perplexity_and_embedding_part_text(self.tokenizer, self.rank_model, direct_answer_text, output_i, max_length-instruct_i_len+4)
@@ -175,13 +182,13 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
                 instruct_i = promt_to_use
 
             # Tokenize the input text
-            instruct_i_input_ids = self.tokenizer.encode(instruct_i, return_tensors="pt", truncation=True, max_length=max_length).to('cpu')
+            instruct_i_input_ids = self.tokenizer.encode(instruct_i, return_tensors="pt", truncation=True, max_length=max_length).to(self.device)
             instruct_i_len = instruct_i_input_ids.shape[1]
             
             if max_length-instruct_i_len > 0:
 
-                len_1, token_ids_1, loss_list_1 = self.get_loss_part_text(self.tokenizer, direct_answer_text, output_i, max_length-instruct_i_len+4, loss_1_list)
-                len_2, token_ids_2, loss_list_2 = self.get_loss_part_text(self.tokenizer, whole_text, output_i, max_length, loss_2_list)
+                len_1, token_ids_1, loss_list_1 = self.get_loss_part_text(self.tokenizer, direct_answer_text, output_i, max_length-instruct_i_len+4, loss_1_list).to(self.device)
+                len_2, token_ids_2, loss_list_2 = self.get_loss_part_text(self.tokenizer, whole_text, output_i, max_length, loss_2_list).to(self.device)
 
                 if len_1 <= 0 or len_2 <= 0:
                     continue
@@ -201,7 +208,7 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
                 mean_list_2.append((mean_2,i))
                 # print('mean_rate',mean_rate)
                 # print('sampled_data',sampled_data)
-                sampled_data[i]['score_rw'] = mean_rate
+                sampled_data[i]['score_ifd'] = mean_rate
 
             else:
                 continue
@@ -222,11 +229,11 @@ class ScorePipeline(BasePipeline):#继承了BasePipeline，有不懂的看一下
         
 
 if __name__ == '__main__':
-
     pipeline = ScorePipeline(name = './', 
     data_path = './',  
     output_path = './'
-    )    
+    )
+        
     example = [
     {
         "instruction": "Give three tips for staying healthy.",
@@ -243,8 +250,11 @@ if __name__ == '__main__':
         "input": "",
         "output": "An atom is made up of a nucleus, which contains protons and neutrons, surrounded by electrons that travel in orbits around the nucleus. The protons and neutrons have a positive charge, while the electrons have a negative charge, resulting in an overall neutral atom. The number of each particle determines the atomic number and the type of atom."
     }
-]
+    ]
     #[{'instruction': 'instruction', 'input': 'input', 'output': 'output'}]
-    
-    output = pipeline._forward(example)
+    with open('/data/home/guanchaofeng/Score/data/output/test_data_1w.json', 'r',encoding='utf-8') as f:
+        data = json.load(f)
+    output = pipeline._forward(data)
+    with open('/data/home/guanchaofeng/DataS/output/test_data_1w.json', 'w',encoding='utf-8') as f:
+        json.dump(output, f, indent=4, ensure_ascii=False)
 
